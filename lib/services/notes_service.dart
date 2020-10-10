@@ -8,22 +8,21 @@ import 'package:http/http.dart' as http;
 import 'package:rest_api/models/note_insert.dart';
 
 class NotesService {
-  static const api = 'https://5f7ed868094b670016b769d2.mockapi.io';
+  final String api = 'https://5f802ba8d6aabe00166f1032.mockapi.io';
+  Dio dio = Dio();
 
-  Future<APIResponse<List<NoteForListing>>> getNoteList() {
-    return http.get(api + '/notes').then((data) {
-      if (data.statusCode == 200) {
-        final jsonData = json.decode(data.body);
-        final notes = <NoteForListing>[];
-        for (var item in jsonData) {
-          notes.add(NoteForListing.fromJson(item));
-        }
-        return APIResponse<List<NoteForListing>>(data: notes);
-      }
+  Future<APIResponse<List<NoteForListing>>> getNoteList() async {
+    var response = await dio.get(api + '/notes');
+    if (response.statusCode == 200) {
+      List<dynamic> data = await response.data;
+
+      List<NoteForListing> notes =
+          data.map((dynamic item) => NoteForListing.fromJson(item)).toList();
+
+      return APIResponse<List<NoteForListing>>(data: notes);
+    } else
       return APIResponse<List<NoteForListing>>(
-          error: true, errorMessage: 'An error occured');
-    }).catchError((_) => APIResponse<List<NoteForListing>>(
-        errorMessage: 'An error occured', error: true));
+          errorMessage: 'An error occured', error: true);
   }
 
   Future<APIResponse<Note>> getNote(String noteID) {
@@ -38,7 +37,7 @@ class NotesService {
         APIResponse<Note>(errorMessage: 'An error occured', error: true));
   }
 
-  Future<APIResponse<bool>> createNote(NoteInsert item) {
+  Future<APIResponse<bool>> createNote(NoteManipulation item) {
     return http.post(api + '/notes', body: item.toJson()).then((data) {
       if (data.statusCode == 201) {
         return APIResponse<bool>(data: true);
@@ -46,5 +45,28 @@ class NotesService {
       return APIResponse<bool>(error: true, errorMessage: 'An error occured');
     }).catchError((_) =>
         APIResponse<bool>(errorMessage: 'An error occured', error: true));
+  }
+
+  Future<APIResponse<bool>> updateNote(String noteID, NoteManipulation item) {
+    return http.put(api + '/notes/' + noteID, body: item.toJson()).then((data) {
+      if (data.statusCode == 200) {
+        return APIResponse<bool>(data: true);
+      }
+      return APIResponse<bool>(error: true, errorMessage: 'An error occured');
+    }).catchError((_) =>
+        APIResponse<bool>(error: true, errorMessage: 'An error occured'));
+  }
+
+  Future<APIResponse<Note>> deleteNote(String noteID) {
+    return http.delete(api + '/notes/' + noteID).then((data) {
+      print(data.statusCode);
+      if (data.statusCode == 200) {
+        final jsonData = json.decode(data.body);
+
+        return APIResponse<Note>(data: Note.fromJson(jsonData));
+      }
+      return APIResponse<Note>(error: true, errorMessage: 'An error occured');
+    }).catchError((_) =>
+        APIResponse<Note>(errorMessage: 'An error occured', error: true));
   }
 }
